@@ -21,9 +21,8 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     let f = File::open(config.filename)?;
     let mut buff = BufReader::new(f);
 
-    for line in extract(&mut buff).lines() {
-        println!("{}", line);
-    }
+    let extracted_str = extract(&mut buff);
+    print!("{}", extracted_str);
 
     Ok(())
 }

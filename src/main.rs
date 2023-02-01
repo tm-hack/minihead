@@ -1,14 +1,20 @@
-use std::{env, fs::File, io::Read};
+extern crate minihead;
+
+use std::env;
+use std::process;
+
+use minihead::Config;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let filename = &args[1];
 
-    let mut f = File::open(filename).expect("file not found");
+    let config = Config::new(&args).unwrap_or_else(|err| {
+        eprintln!("Problem parsing arguments: {}", err);
+        process::exit(1);
+    });
 
-    let mut contents = String::new();
-    f.read_to_string(&mut contents)
-        .expect("something went wrong readin the file");
-
-    println!("With text:\n{}", contents);
+    if let Err(e) = minihead::run(config) {
+        eprintln!("Application error: {}", e);
+        process::exit(1);
+    }
 }

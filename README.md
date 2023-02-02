@@ -1,4 +1,4 @@
-# minihead
+# WIP: minihead
 
 ## Overview
 linuxのheadコマンドをRustで置き換えた学習用のリポジトリです。

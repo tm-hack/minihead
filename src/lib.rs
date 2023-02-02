@@ -45,7 +45,9 @@ mod test {
 
     #[test]
     fn normal_test1() {
-        let f = File::open("spec.md").unwrap();
+        let testdata_path = "tests/testdata/spec.md";
+
+        let f = File::open(testdata_path).unwrap();
         let mut buff = BufReader::new(f);
         let ok_contents = "\
 # head

@@ -12,7 +12,7 @@ const DEAFULT_LINES_NUMBER: usize = 10;
 pub struct Config {
     filename: String,
     output_mode: String,
-    limit_num: i32,
+    limit_num: usize,
 }
 
 fn print_usage(program: &str, opts: Options) {
@@ -37,14 +37,14 @@ impl Config {
             }
         };
 
-        let mut limit_num = DEAFULT_LINES_NUMBER as i32;
+        let mut limit_num = DEAFULT_LINES_NUMBER;
         let mut output_mode = LINE_MODE.to_string();
 
         if matches.opt_present(LINE_OPTION) {
             if let Some(text) = matches.opt_str(LINE_OPTION) {
                 match text.parse::<usize>() {
                     Ok(number) => {
-                        limit_num = number as i32;
+                        limit_num = number;
                     }
                     Err(msg) => {
                         println!("Error: {}", msg.to_string());
@@ -58,7 +58,7 @@ impl Config {
                 match text.parse::<usize>() {
                     Ok(number) => {
                         output_mode = CHAR_MODE.to_string();
-                        limit_num = number as i32;
+                        limit_num = number;
                     }
                     Err(msg) => {
                         // display usage
@@ -84,18 +84,7 @@ impl Config {
     }
 }
 
-pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
-    let f = File::open(config.filename)?;
-    let mut buff = BufReader::new(f);
-
-    for line in extract(&mut buff, config.limit_num).lines() {
-        println!("{}", line);
-    }
-
-    Ok(())
-}
-
-pub fn extract(buff: &mut BufReader<File>, limit_num: i32) -> String {
+pub fn extract_line(buff: &mut BufReader<File>, limit_num: usize) -> String {
     let mut results = String::new();
 
     for _ in 0..limit_num {
@@ -105,8 +94,33 @@ pub fn extract(buff: &mut BufReader<File>, limit_num: i32) -> String {
     results
 }
 
+pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
+    let mut f = File::open(config.filename)?;
+
+    let result = match config.output_mode.as_str() {
+        LINE_MODE => {
+            let mut buff = BufReader::new(f);
+            extract_line(&mut buff, config.limit_num)
+        }
+        CHAR_MODE => {
+            let mut buff = Vec::with_capacity(config.limit_num);
+            f.read(&mut buff)?;
+            String::from_utf8(buff)?
+        }
+        _ => return Err("no match output mode".into()),
+    };
+
+    for line in result.lines() {
+        println!("{}", line);
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod test {
+    use std::{process::Output, ptr::null};
+
     use super::*;
 
     #[test]
@@ -154,7 +168,6 @@ mod test {
     #[test]
     fn extract_normal_test1() {
         let testdata_path = "tests/testdata/spec.md";
-
         let f = File::open(testdata_path).unwrap();
         let mut buff = BufReader::new(f);
         let ok_contents = "\
@@ -162,6 +175,25 @@ mod test {
 ## NAME
        head - output the first part of files
 ";
-        assert_eq!(ok_contents, extract(&mut buff, 3));
+        assert_eq!(ok_contents, extract_line(&mut buff, 3));
+    }
+
+    #[test]
+    fn run_normal_test1() {
+        let filename = "tests/testdata/spec.md".to_string();
+        let output_mode = "char".to_string();
+        let limit_num = 5;
+
+        let config: Config = Config {
+            filename,
+            output_mode,
+            limit_num,
+        };
+        let ok_contents = "\
+# head
+## NAME
+       head - output the first part of files
+";
+        // assert_eq!(true, return_true());
     }
 }

@@ -1,19 +1,86 @@
+use getopts::Options;
 use std::error::Error;
 use std::fs::File;
 use std::io::{prelude::*, BufReader};
 
+const LINE_OPTION: &'static str = "n";
+const LINE_MODE: &'static str = "line";
+const CHAR_OPTION: &'static str = "c";
+const CHAR_MODE: &'static str = "char";
+const DEAFULT_LINES_NUMBER: usize = 10;
+
 pub struct Config {
     filename: String,
+    output_mode: String,
+    limit_num: i32,
+}
+
+fn print_usage(program: &str, opts: Options) {
+    let brief = format!("Usage: {} [options] FILE", program);
+    println!("{}", opts.usage(&brief));
 }
 
 impl Config {
     pub fn new(args: &[String]) -> Result<Config, &'static str> {
-        if args.len() < 2 {
-            return Err("not enough arguments!");
+        let program = &args[0];
+        let mut opts = Options::new();
+
+        opts.optopt(LINE_OPTION, "lines", "output first NUM lines", "NUM");
+        opts.optopt(CHAR_OPTION, "bytes", "output first NUM chars", "NUM");
+
+        let matches = match opts.parse(&args[1..]) {
+            Ok(m) => m,
+            Err(msg) => {
+                println!("Error: {}", msg.to_string());
+                print_usage(program, opts);
+                return Err("error caused in parsing auguments");
+            }
+        };
+
+        let mut limit_num = DEAFULT_LINES_NUMBER as i32;
+        let mut output_mode = LINE_MODE.to_string();
+
+        if matches.opt_present(LINE_OPTION) {
+            if let Some(text) = matches.opt_str(LINE_OPTION) {
+                match text.parse::<usize>() {
+                    Ok(number) => {
+                        limit_num = number as i32;
+                    }
+                    Err(msg) => {
+                        println!("Error: {}", msg.to_string());
+                        print_usage(program, opts);
+                        return Err("invalid number of lines");
+                    }
+                }
+            }
+        } else if matches.opt_present(CHAR_OPTION) {
+            if let Some(text) = matches.opt_str(CHAR_OPTION) {
+                match text.parse::<usize>() {
+                    Ok(number) => {
+                        output_mode = CHAR_MODE.to_string();
+                        limit_num = number as i32;
+                    }
+                    Err(msg) => {
+                        // display usage
+                        println!("Error: {}", msg.to_string());
+                        print_usage(program, opts);
+                        return Err("invalid number of chars");
+                    }
+                }
+            }
         }
 
-        let filename = args[1].clone();
-        Ok(Config { filename })
+        if matches.free.is_empty() {
+            print_usage(program, opts);
+            return Err("set filename in arguments");
+        } else {
+            let filename = String::from(&matches.free[0]);
+            Ok(Config {
+                filename,
+                output_mode,
+                limit_num,
+            })
+        }
     }
 }
 
@@ -21,18 +88,17 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     let f = File::open(config.filename)?;
     let mut buff = BufReader::new(f);
 
-    for line in extract(&mut buff).lines() {
+    for line in extract(&mut buff, config.limit_num).lines() {
         println!("{}", line);
     }
 
     Ok(())
 }
 
-pub fn extract(buff: &mut BufReader<File>) -> String {
+pub fn extract(buff: &mut BufReader<File>, limit_num: i32) -> String {
     let mut results = String::new();
-    let lines_num = 3;
 
-    for _ in 0..lines_num {
+    for _ in 0..limit_num {
         buff.read_line(&mut results).expect("failed to read file");
     }
 
@@ -44,7 +110,49 @@ mod test {
     use super::*;
 
     #[test]
-    fn normal_test1() {
+    fn config_normal_test1() {
+        let command_input = "minihead test1.txt -n 10";
+        let args: Vec<String> = command_input
+            .split_whitespace()
+            .map(|s| s.to_string())
+            .collect();
+
+        let config = Config::new(&args).unwrap();
+        assert_eq!("test1.txt", config.filename);
+        assert_eq!("line", config.output_mode);
+        assert_eq!(10, config.limit_num);
+    }
+
+    #[test]
+    fn config_normal_test2() {
+        let command_input = "minihead test2.txt -c 5";
+        let args: Vec<String> = command_input
+            .split_whitespace()
+            .map(|s| s.to_string())
+            .collect();
+
+        let config = Config::new(&args).unwrap();
+        assert_eq!("test2.txt", config.filename);
+        assert_eq!("char", config.output_mode);
+        assert_eq!(5, config.limit_num);
+    }
+
+    #[test]
+    fn config_normal_test3() {
+        let command_input = "minihead test3.txt -n 10 -c 5";
+        let args: Vec<String> = command_input
+            .split_whitespace()
+            .map(|s| s.to_string())
+            .collect();
+
+        let config = Config::new(&args).unwrap();
+        assert_eq!("test3.txt", config.filename);
+        assert_eq!("line", config.output_mode);
+        assert_eq!(10, config.limit_num);
+    }
+
+    #[test]
+    fn extract_normal_test1() {
         let testdata_path = "tests/testdata/spec.md";
 
         let f = File::open(testdata_path).unwrap();
@@ -54,6 +162,6 @@ mod test {
 ## NAME
        head - output the first part of files
 ";
-        assert_eq!(ok_contents, extract(&mut buff));
+        assert_eq!(ok_contents, extract(&mut buff, 3));
     }
 }

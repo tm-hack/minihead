@@ -1,8 +1,8 @@
-# WIP: minihead
+minihead
 
 ## Overview
-linuxのheadコマンドをRustで置き換えた学習用のリポジトリです。
-WIPです。
+linuxのheadコマンドをRustで書き換えたプログラムです。
+オプションには、-n,-cが使用できます。
 
 ## Requirement
 - WSL2

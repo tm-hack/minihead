@@ -84,43 +84,51 @@ impl Config {
     }
 }
 
-pub fn extract_line(buff: &mut BufReader<File>, limit_num: usize) -> String {
-    let mut results = String::new();
+fn extract_line(buff: &mut BufReader<File>, limit_num: usize) -> String {
+    let mut result = String::new();
 
     for _ in 0..limit_num {
-        buff.read_line(&mut results).expect("failed to read file");
+        buff.read_line(&mut result).expect("failed to read file");
     }
 
-    results
+    result
+}
+
+fn extract_char(buff: &mut BufReader<File>, limit_num: usize) -> String {
+    let mut tmp_strs = String::new();
+    let mut result = String::new();
+    let mut char_cnt = 0;
+
+    while char_cnt < limit_num {
+        let line_bytes = buff.read_line(&mut tmp_strs).expect("failed to read file");
+        char_cnt += line_bytes;
+
+        if char_cnt >= limit_num {
+            result = (&tmp_strs[0..limit_num]).to_string();
+            break;
+        }
+    }
+
+    result
 }
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
-    let mut f = File::open(config.filename)?;
+    let f = File::open(config.filename)?;
+    let mut buff = BufReader::new(f);
 
-    let result = match config.output_mode.as_str() {
-        LINE_MODE => {
-            let mut buff = BufReader::new(f);
-            extract_line(&mut buff, config.limit_num)
-        }
-        CHAR_MODE => {
-            let mut buff = Vec::with_capacity(config.limit_num);
-            f.read(&mut buff)?;
-            String::from_utf8(buff)?
-        }
+    let extracted_str = match config.output_mode.as_str() {
+        LINE_MODE => extract_line(&mut buff, config.limit_num),
+        CHAR_MODE => extract_char(&mut buff, config.limit_num),
         _ => return Err("no match output mode".into()),
     };
 
-    for line in result.lines() {
-        println!("{}", line);
-    }
+    print!("{}", extracted_str);
 
     Ok(())
 }
 
 #[cfg(test)]
 mod test {
-    use std::{process::Output, ptr::null};
-
     use super::*;
 
     #[test]
@@ -166,7 +174,7 @@ mod test {
     }
 
     #[test]
-    fn extract_normal_test1() {
+    fn extract_line_normal_test1() {
         let testdata_path = "tests/testdata/spec.md";
         let f = File::open(testdata_path).unwrap();
         let mut buff = BufReader::new(f);
@@ -174,26 +182,37 @@ mod test {
 # head
 ## NAME
        head - output the first part of files
+
+## SYNOPSIS
+       head [OPTION]... [FILE]...
+
+## DESCRIPTION
+       Print the first 10 lines of each FILE to standard output.  With more than one FILE, precede each with a header giving the file name.
+
 ";
-        assert_eq!(ok_contents, extract_line(&mut buff, 3));
+        assert_eq!(ok_contents, extract_line(&mut buff, 10));
     }
 
     #[test]
-    fn run_normal_test1() {
-        let filename = "tests/testdata/spec.md".to_string();
-        let output_mode = "char".to_string();
-        let limit_num = 5;
-
-        let config: Config = Config {
-            filename,
-            output_mode,
-            limit_num,
-        };
+    fn extract_char_normal_test1() {
+        let testdata_path = "tests/testdata/spec.md";
+        let f = File::open(testdata_path).unwrap();
+        let mut buff = BufReader::new(f);
         let ok_contents = "\
 # head
 ## NAME
-       head - output the first part of files
+       head - output the first part";
+        assert_eq!(ok_contents, extract_char(&mut buff, 50));
+    }
+
+    #[test]
+    fn extract_char_normal_test2() {
+        let testdata_path = "tests/testdata/spec.md";
+        let f = File::open(testdata_path).unwrap();
+        let mut buff = BufReader::new(f);
+        let ok_contents = "\
+# head
 ";
-        // assert_eq!(true, return_true());
+        assert_eq!(ok_contents, extract_char(&mut buff, 7));
     }
 }

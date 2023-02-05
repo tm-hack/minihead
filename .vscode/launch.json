@@ -38,9 +38,7 @@
                     "kind": "bin"
                 }
             },
-            "args": [
-                "${cwd}/tests/testdata/spec.md -c 10",
-            ],
+            "args": "${cwd}/tests/testdata/spec.md -c 20",
             "cwd": "${workspaceFolder}"
         },
         {

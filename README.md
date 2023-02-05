@@ -10,10 +10,15 @@ linuxのheadコマンドをRustで書き換えたプログラムです。
 
 ## Usage
 ```
-git clone ...
-cd minihead
-cargo build --release
-./target/release/minihead 任意のファイルパス
+$ git clone ...
+$ cd minihead
+$ cargo build --release
+$ ./target/release/minihead sample.txt -n 3
+Hello World!
+thank you!
+
+$ ./target/release/minihead sample.txt -c 5
+Hello$
 ```
 
 ## About debug

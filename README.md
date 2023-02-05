@@ -1,4 +1,4 @@
-minihead
+# minihead
 
 ## Overview
 linuxのheadコマンドをRustで書き換えたプログラムです。

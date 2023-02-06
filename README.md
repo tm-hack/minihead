@@ -30,7 +30,9 @@ $ cargo build
 ```
 
 ## Reference
-WIP
+[Rustでheadコマンドを実装する①（デフォルト仕様まで）](https://shiganaise.com/rust-head-command-1/)
+
+[Rustでheadコマンドを実装する②（-n, -cオプションを実装する）](https://shiganaise.com/rust-head-command-2/)
 
 ## Author
 [twitter](https://twitter.com/anto_tohoku)

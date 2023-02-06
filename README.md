@@ -24,9 +24,9 @@ Hello$
 ## About debug
 debugモードでのbuildは以下の手順で行えます。
 ```
-git clone ...
-cd minihead
-cargo build
+$ git clone ...
+$ cd minihead
+$ cargo build
 ```
 
 ## Reference
